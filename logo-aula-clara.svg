@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Aula Clara</title>
+  <defs>
+    <linearGradient id="blue" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6483ed"/>
+      <stop offset="1" stop-color="#3f60c9"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#edf2ff"/>
+  <path d="M32 10.5v3.2M22.4 14.2l1.8 2.5M41.6 14.2l-1.8 2.5" fill="none" stroke="#eea45e" stroke-linecap="round" stroke-width="2.2"/>
+  <circle cx="32" cy="21" r="5.1" fill="#f0aa65"/>
+  <path d="M13.5 28.2c7.1-1.9 13.3.1 18.5 5.5 5.2-5.4 11.4-7.4 18.5-5.5v18.4c-7.1-1.9-13.3.1-18.5 5.5-5.2-5.4-11.4-7.4-18.5-5.5V28.2Z" fill="#fff" stroke="url(#blue)" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.7"/>
+  <path d="M32 33.7v18.4" fill="none" stroke="url(#blue)" stroke-linecap="round" stroke-width="2.5"/>
+  <path d="M19 34.2c3.4-.3 6.2.4 8.4 2.1M45 34.2c-3.4-.3-6.2.4-8.4 2.1" fill="none" stroke="#b6c5f5" stroke-linecap="round" stroke-width="1.8"/>
+</svg>
