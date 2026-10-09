@@ -40,6 +40,13 @@ async function openCloudSession(user){
   data=workspace.data;sessionStorage.setItem('aulaclara-display-name',user.user_metadata?.full_name||user.email||'Equipo escolar');
   sessionStorage.removeItem('aulaclara-session');enter();
 }
+function showSignupConfirmation(email){
+  const note=document.querySelector('.registration-notice');note.textContent='Cuenta creada. Revisá tu correo para confirmar la dirección; el enlace te devolverá a Aula Clara.';
+  let resend=document.querySelector('#resendConfirmation');
+  if(!resend){resend=document.createElement('button');resend.type='button';resend.id='resendConfirmation';resend.className='button secondary small';resend.textContent='Reenviar correo de confirmación';note.append(' ');note.append(resend)}
+  resend.dataset.email=email;
+  resend.onclick=async()=>{resend.disabled=true;try{const {error}=await AulaClaraCloud.resendSignup(resend.dataset.email);if(error)throw error;toast('Revisá tu correo; solicitamos un nuevo enlace de confirmación.')}catch(error){toast(error.message||'No se pudo reenviar el correo.')}finally{resend.disabled=false}};
+}
 document.querySelector('#loginForm').addEventListener('submit',async e=>{
   if(!AulaClaraCloud.configured)return;
   e.preventDefault();e.stopImmediatePropagation();
@@ -59,11 +66,13 @@ document.querySelector('#registerForm').addEventListener('submit',async e=>{
     const {data:authData,error}=await AulaClaraCloud.signUp({email,password:document.querySelector('#regPassword').value,fullName,organizationName,accountType:registrationType});
     if(error)throw error;
     if(authData.session&&authData.user){await openCloudSession(authData.user);toast('Cuenta creada y colegio conectado.')}
-    else{toast('Cuenta creada. Revisá tu correo y confirmá la dirección; después iniciá sesión.')}
+    else{showSignupConfirmation(email);toast('Revisá tu correo para confirmar la cuenta.')}
   }catch(error){toast(error.message||'No se pudo crear la cuenta. Revisá los datos e intentá de nuevo.')}
   finally{button.disabled=false}
 },true);
 if(AulaClaraCloud.configured){
+  const resendWrap=document.createElement('p');resendWrap.className='login-register-link';const resendButton=document.createElement('button');resendButton.type='button';resendButton.textContent='Reenviar correo de confirmación';resendWrap.append(resendButton);document.querySelector('#loginForm').after(resendWrap);
+  resendButton.onclick=async()=>{const email=document.querySelector('#email').value.trim();if(!email){toast('Escribí tu correo en el campo de acceso y volvé a tocar reenviar.');document.querySelector('#email').focus();return}resendButton.disabled=true;try{const {error}=await AulaClaraCloud.resendSignup(email);if(error)throw error;toast('Si la cuenta necesita confirmación, Supabase enviará un nuevo correo.')}catch(error){toast(error.message||'No se pudo reenviar el correo.')}finally{resendButton.disabled=false}};
   AulaClaraCloud.session().then(async session=>{if(session?.user)await openCloudSession(session.user)}).catch(error=>toast(error.message||'No se pudo recuperar la sesión.'));
 }
 let cloudSaveTimer=null;

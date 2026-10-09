@@ -7,7 +7,8 @@
   window.AulaClaraCloud={
     configured,client,
     async signIn(email,password){if(!client)throw new Error('Falta configurar la conexión con Supabase.');return client.auth.signInWithPassword({email,password})},
-    async signUp({email,password,fullName,organizationName,accountType='school'}){if(!client)throw new Error('Falta configurar la conexión con Supabase.');return client.auth.signUp({email,password,options:{data:{full_name:fullName,organization_name:organizationName,account_type:accountType}}})},
+    async signUp({email,password,fullName,organizationName,accountType='school'}){if(!client)throw new Error('Falta configurar la conexión con Supabase.');const emailRedirectTo=`${window.location.origin}${window.location.pathname}`;return client.auth.signUp({email,password,options:{emailRedirectTo,data:{full_name:fullName,organization_name:organizationName,account_type:accountType}}})},
+    async resendSignup(email){if(!client)throw new Error('Falta configurar la conexión con Supabase.');const emailRedirectTo=`${window.location.origin}${window.location.pathname}`;return client.auth.resend({type:'signup',email,options:{emailRedirectTo}})},
     async createWorkspace(){if(!client)throw new Error('Falta configurar la conexión con Supabase.');return client.rpc('create_school_workspace')},
     async signOut(){if(!client)return {error:null};return client.auth.signOut()},
     async session(){if(!client)return null;return ensure(await client.auth.getSession()).session},
