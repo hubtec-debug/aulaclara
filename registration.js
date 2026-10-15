@@ -34,11 +34,17 @@ document.querySelector('#registerForm').addEventListener('submit',e=>{
 });
 
 // En el modo conectado, los formularios usan Supabase Auth y no la sesión de demostración.
-async function openCloudSession(user){
+async function openCloudSession(user,acceptingInvite=false){
+  const inviteHash=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('type')==='invite';
+  if(inviteHash&&!acceptingInvite){showTeacherInvitePassword(user);return}
   const workspace=await AulaClaraCloud.loadWorkspace();
   AulaClaraState.schoolId=workspace.schoolId;AulaClaraState.cloudSession=true;
   data=workspace.data;sessionStorage.setItem('aulaclara-display-name',user.user_metadata?.full_name||user.email||'Equipo escolar');
   sessionStorage.removeItem('aulaclara-session');enter();
+}
+function showTeacherInvitePassword(user){
+  document.querySelector('#modalRoot').innerHTML=`<div class="modal-backdrop"><section class="modal"><div class="modal-header"><div><span class="eyebrow">INVITACIÓN AL COLEGIO</span><h2>Creá tu contraseña</h2><p>Configurá tu acceso docente para continuar.</p></div></div><form id="teacherInvitePasswordForm"><div class="field"><label for="invitePassword">Nueva contraseña</label><input id="invitePassword" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label for="invitePasswordRepeat">Repetir contraseña</label><input id="invitePasswordRepeat" type="password" minlength="8" autocomplete="new-password" required></div><div id="teacherInvitePasswordError" class="table-empty" role="status" hidden></div><div class="modal-actions"><button class="button primary" type="submit">Activar mi cuenta</button></div></form></section></div>`;
+  document.querySelector('#teacherInvitePasswordForm').onsubmit=async e=>{e.preventDefault();const pass=document.querySelector('#invitePassword').value,repeat=document.querySelector('#invitePasswordRepeat').value,error=document.querySelector('#teacherInvitePasswordError'),button=e.currentTarget.querySelector('button');if(pass!==repeat){error.hidden=false;error.textContent='Las contraseñas no coinciden.';return}button.disabled=true;error.hidden=true;try{const {error:saveError}=await AulaClaraCloud.client.auth.updateUser({password:pass});if(saveError)throw saveError;history.replaceState({},document.title,window.location.pathname);await openCloudSession(user,true);toast('Contraseña creada. Ya podés usar Aula Clara.')}catch(err){button.disabled=false;error.hidden=false;error.textContent=err.message||'No se pudo activar la cuenta. Volvé a abrir el enlace del correo.'}};
 }
 function showSignupConfirmation(email){
   const note=document.querySelector('.registration-notice');note.textContent='Cuenta creada. Revisá tu correo para confirmar la dirección; el enlace te devolverá a Aula Clara.';
@@ -91,7 +97,7 @@ document.querySelector('#logoutBtn').onclick=async()=>{
 document.addEventListener('click',e=>{
   if(!AulaClaraState.cloudSession)return;
   const add=e.target.closest('[data-add]'),edit=e.target.closest('[data-edit]'),remove=e.target.closest('[data-remove]');
-  if(add?.dataset.add==='teacher'||edit?.dataset.edit?.startsWith('teacher:')){e.preventDefault();e.stopImmediatePropagation();toast('La invitación real de docentes requiere un flujo seguro adicional; no se guardará como si fuera una cuenta.')}
+  if(edit?.dataset.edit?.startsWith('teacher:')){e.preventDefault();e.stopImmediatePropagation();toast('Los datos de acceso docente se administran desde la invitación enviada por correo.')}
   if(e.target.closest('#schoolSwitcher')||add?.dataset.add==='school'){e.preventDefault();e.stopImmediatePropagation();toast('La edición de los datos institucionales se habilitará al ampliar el esquema del colegio.')}
   if(remove){e.preventDefault();e.stopImmediatePropagation();toast('La eliminación online está pausada para evitar borrar información institucional por error.')}
 },true);
