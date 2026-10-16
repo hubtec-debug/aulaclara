@@ -98,6 +98,6 @@ document.addEventListener('click',e=>{
   if(!AulaClaraState.cloudSession)return;
   const add=e.target.closest('[data-add]'),edit=e.target.closest('[data-edit]'),remove=e.target.closest('[data-remove]');
   if(edit?.dataset.edit?.startsWith('teacher:')){e.preventDefault();e.stopImmediatePropagation();toast('Los datos de acceso docente se administran desde la invitación enviada por correo.')}
-  if(e.target.closest('#schoolSwitcher')||add?.dataset.add==='school'){e.preventDefault();e.stopImmediatePropagation();toast('La edición de los datos institucionales se habilitará al ampliar el esquema del colegio.')}
+  if(e.target.closest('#schoolSwitcher')||add?.dataset.add==='school'){e.preventDefault();e.stopImmediatePropagation();schoolModal()}
   if(remove){e.preventDefault();e.stopImmediatePropagation();toast('La eliminación online está pausada para evitar borrar información institucional por error.')}
 },true);
