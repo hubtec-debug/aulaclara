@@ -30,7 +30,7 @@ document.querySelector('#registerForm').addEventListener('submit',e=>{
   data.school=registrationType==='school'?{name:org,location:[place,orgType].filter(Boolean).join(' · ')||'Institución de prueba',accountType:registrationType,institutionType:orgType,levels}:{name:org,location:['Espacio profesional',place].filter(Boolean).join(' · ')||'Cuenta profesional de prueba',accountType:registrationType,levels};
   setActivity(`Se creó un espacio de prueba para ${fullName}.`);
   sessionStorage.setItem('aulaclara-session','1');sessionStorage.setItem('aulaclara-display-name',fullName);
-  document.querySelector('#registerScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');render();toast('Espacio de prueba listo. El prototipo no guarda contraseñas ni crea una cuenta online.');
+  document.querySelector('#registerScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');render();toast('Espacio local listo. Esta sesión de demostración no crea una cuenta en línea.');
 });
 
 // En el modo conectado, los formularios usan Supabase Auth y no la sesión de demostración.
