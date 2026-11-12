@@ -47,6 +47,7 @@
     async insertReadingResult(result,schoolId,classId){const user=await this.currentUser();if(!user)throw new Error('La sesión venció. Volvé a iniciar sesión.');return client.from('reading_screenings').insert({school_id:schoolId,class_id:classId,student_id:result.studentId,created_by:user.id,instrument_key:'reading_3_primary_pilot_v1',duration_seconds:result.seconds,observed_errors:result.errors,words_per_minute:result.wpm,comprehension_score:result.comprehension,observation_notes:result.notes||''})},
     async signedProductionUrl(path){if(!client)throw new Error('Iniciá sesión para abrir la producción.');const result=await client.storage.from('student-productions').createSignedUrl(path,900);if(result.error)throw result.error;return result.data.signedUrl},
     async signedReadingAudioUrl(path){return this.signedProductionUrl(path)},
+    async downloadProduction(path){if(!client)throw new Error('Iniciá sesión para abrir la producción.');const result=await client.storage.from('student-productions').download(path);if(result.error)throw result.error;if(!result.data||!result.data.size)throw new Error('El archivo de audio guardado está vacío.');return result.data},
     async retryAnalysisJob({jobId,modality,referenceText}){
       if(!client)throw new Error('Iniciá sesión para reintentar el análisis.');
       const session=await this.session(),user=await this.currentUser();if(!session||!user)throw new Error('La sesión venció. Volvé a iniciar sesión.');
