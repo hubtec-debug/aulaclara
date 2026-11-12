@@ -114,8 +114,10 @@
     },
     async deleteStudent(schoolId,studentId){
       const jobs=await client.from('ai_analysis_jobs').select('private_object_path').eq('school_id',schoolId).eq('student_id',studentId);if(jobs.error)throw jobs.error;
-      const deleted=await client.from('students').delete().eq('school_id',schoolId).eq('id',studentId).select('id').maybeSingle();if(deleted.error)throw deleted.error;if(!deleted.data)throw new Error('No se pudo eliminar el alumno. Verificá el rol directivo y las políticas de Supabase.');
-      const paths=(jobs.data||[]).map(j=>j.private_object_path).filter(Boolean);let cleanupWarning='';if(paths.length){const cleanup=await client.storage.from('student-productions').remove(paths);if(cleanup.error){console.warn('Student media cleanup failed after deletion',cleanup.error);cleanupWarning=' El alumno y sus informes se eliminaron, pero quedó un archivo privado pendiente de limpieza.'}}
+      const paths=[...new Set((jobs.data||[]).map(j=>j.private_object_path).filter(Boolean))];let cleanupWarning='';
+      const deleted=await client.rpc('delete_school_student',{p_school_id:schoolId,p_student_id:studentId});if(deleted.error)throw deleted.error;
+      if(!deleted.data?.ok)throw new Error('No se pudo eliminar el alumno. Verificá el rol directivo y la migración 007.');
+      if(paths.length){const cleanup=await client.storage.from('student-productions').remove(paths);if(cleanup.error){console.warn('Student media cleanup failed after deletion',cleanup.error);cleanupWarning=' Los registros se eliminaron, pero quedó un archivo privado pendiente de limpieza.'}}
       return {data:deleted.data,cleanupWarning};
     },
     async manageSchoolMember({schoolId,memberId,action,fullName='',role='',classIds=[]}){const result=await client.rpc('manage_school_member',{p_school_id:schoolId,p_member_id:memberId,p_action:action,p_full_name:fullName||null,p_role:role||null,p_class_ids:classIds});if(result.error)throw result.error;return result.data},    async createClass(schoolId,record){return client.from('school_classes').insert({school_id:schoolId,level:record.level,grade:record.grade,division:record.division,shift:record.shift,school_year:record.schoolYear||2026}).select().single()},
