@@ -21,19 +21,19 @@ document.querySelectorAll('[data-toggle-password]').forEach(b=>b.addEventListene
 function checkPasswordMatch(){const pass=document.querySelector('#regPassword').value,repeat=document.querySelector('#regPasswordRepeat');repeat.setCustomValidity(repeat.value===pass?'':'Las contraseñas no coinciden.')}
 document.querySelector('#regPasswordRepeat').addEventListener('input',checkPasswordMatch);
 document.querySelector('#regPassword').addEventListener('input',checkPasswordMatch);
-document.querySelector('#regLogo').addEventListener('change',e=>{const file=e.target.files?.[0],preview=document.querySelector('#logoPreview');if(!file){preview.classList.add('hidden');return}if(file.size>2*1024*1024){e.target.value='';toast('El logo de prueba debe pesar menos de 2 MB.');preview.classList.add('hidden');return}preview.src=URL.createObjectURL(file);preview.classList.remove('hidden')});
+document.querySelector('#regLogo').addEventListener('change',e=>{const file=e.target.files?.[0],preview=document.querySelector('#logoPreview');if(!file){preview.classList.add('hidden');return}if(file.size>2*1024*1024){e.target.value='';toast('El logo debe pesar menos de 2 MB.');preview.classList.add('hidden');return}preview.src=URL.createObjectURL(file);preview.classList.remove('hidden')});
 document.querySelector('#registerForm').addEventListener('submit',e=>{
   e.preventDefault();checkPasswordMatch();if(!e.currentTarget.reportValidity())return;
   if(registrationType==='school'&&!document.querySelector('input[name="levels"]:checked')){toast('Seleccioná al menos un nivel educativo.');return}
   const fullName=document.querySelector('#regName').value.trim(),org=document.querySelector('#regOrgName').value.trim(),province=document.querySelector('#regProvince').value,city=document.querySelector('#regCity').value.trim(),orgType=document.querySelector('#regOrgType').value,place=[province,city].filter(Boolean).join(' · ');
   const levels=registrationType==='school'?[...document.querySelectorAll('input[name="levels"]:checked')].map(input=>input.value):[];
-  data.school=registrationType==='school'?{name:org,location:[place,orgType].filter(Boolean).join(' · ')||'Institución de prueba',accountType:registrationType,institutionType:orgType,levels}:{name:org,location:['Espacio profesional',place].filter(Boolean).join(' · ')||'Cuenta profesional de prueba',accountType:registrationType,levels};
-  setActivity(`Se creó un espacio de prueba para ${fullName}.`);
+  data.school=registrationType==='school'?{name:org,location:[place,orgType].filter(Boolean).join(' · ')||'Institución',accountType:registrationType,institutionType:orgType,levels}:{name:org,location:['Espacio profesional',place].filter(Boolean).join(' · ')||'Cuenta profesional',accountType:registrationType,levels};
+  setActivity(`Se creó el espacio institucional para ${fullName}.`);
   sessionStorage.setItem('aulaclara-session','1');sessionStorage.setItem('aulaclara-display-name',fullName);
-  document.querySelector('#registerScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');render();toast('Espacio local listo. Esta sesión de demostración no crea una cuenta en línea.');
+  document.querySelector('#registerScreen').classList.add('hidden');document.querySelector('#app').classList.remove('hidden');render();toast('Espacio guardado en este navegador.');
 });
 
-// En el modo conectado, los formularios usan Supabase Auth y no la sesión de demostración.
+// En el modo conectado, los formularios usan Supabase Auth y no la sesión local.
 async function openCloudSession(user,acceptingInvite=false){
   const inviteHash=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('type')==='invite';
   if(inviteHash&&!acceptingInvite){showTeacherInvitePassword(user);return}
