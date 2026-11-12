@@ -30,7 +30,7 @@ function commitStudentCsv(){if(!csvImportPreview.length)return;const imported=cs
 const localOpenModal=openModal;
 openModal=function(type){if(AulaClaraState?.cloudSession&&['student','class','teacher'].includes(type)){openCloudManagementModal(type);return}return localOpenModal(type)};
 const localOpenEditItem=openEditItem;
-openEditItem=function(key){if(AulaClaraState?.cloudSession&&key.startsWith('student:')){openCloudManagementModal('student',data.students.find(s=>String(s.id)===key.split(':')[1]));return}return localOpenEditItem(key)};
+openEditItem=function(key){if(AulaClaraState?.cloudSession&&key.startsWith('student:')){openCloudManagementModal('student',data.students.find(s=>String(s.id)===key.split(':')[1]));return}if(AulaClaraState?.cloudSession&&key.startsWith('teacher:')){openCloudTeacherEdit(data.teachers.find(s=>String(s.id)===key.split(':')[1]));return}return localOpenEditItem(key)};
 function openCloudManagementModal(type,student=null){
   const classes=data.classes||[], isEdit=Boolean(student);
   if(type==='student'&&!classes.length){toast('Primero creá una división para poder inscribir al alumno.');return}
@@ -68,3 +68,21 @@ function openCloudManagementModal(type,student=null){
   };
   $('#cloudEntityForm input')?.focus();
 }
+
+function openCloudTeacherEdit(teacher){
+  if(!teacher)return;const assignments=(data.classes||[]).map(cl=>`<label class="question-block"><input type="checkbox" name="classIds" value="${esc(cl.id)}" ${(teacher.classIds||[]).some(id=>String(id)===String(cl.id))?'checked':''}> ${esc(cl.grade)} ${esc(cl.division)} · ${esc(cl.level||'')}</label>`).join('');
+  $('#modalRoot').innerHTML=`<div class="modal-backdrop"><section class="modal"><div class="modal-header"><div><h2>Editar integrante</h2><p>Actualizá su nombre, rol y divisiones de acceso.</p></div><button type="button" class="modal-close" data-member-close>×</button></div><form id="editSchoolMemberForm"><div class="field"><label>Nombre y apellido</label><input name="fullName" required maxlength="120" value="${esc(teacher.name)}"></div><div class="field"><label>Correo de la cuenta</label><input value="${esc(teacher.email||'—')}" disabled><small>El correo pertenece a su cuenta de acceso y no se cambia desde el colegio.</small></div><div class="field"><label>Rol en el colegio</label><select name="role" id="editMemberRole"><option value="teacher" ${teacher.role==='teacher'?'selected':''}>Docente · acceso a divisiones asignadas</option><option value="director" ${teacher.role==='director'?'selected':''}>Directivo · gestión institucional</option></select></div><div class="field" id="editMemberAssignments"><label>Divisiones a cargo</label>${assignments||'<p class="table-empty">No hay divisiones creadas.</p>'}<small>Los directivos tienen acceso institucional y no requieren asignaciones.</small></div><div id="editMemberMessage" class="table-empty" role="status" hidden></div><div class="modal-actions"><button type="button" class="button secondary small" data-member-close>Cancelar</button><button type="submit" class="button primary small">Guardar cambios</button></div></form></section></div>`;
+  const root=$('#modalRoot');root.querySelectorAll('[data-member-close]').forEach(b=>b.onclick=closeModal);const role=root.querySelector('#editMemberRole'),assignmentsRoot=root.querySelector('#editMemberAssignments');role.onchange=()=>{assignmentsRoot.hidden=role.value==='director'};role.onchange();
+  root.querySelector('#editSchoolMemberForm').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('button[type="submit"]'),message=root.querySelector('#editMemberMessage'),fullName=form.elements.fullName.value.trim(),newRole=role.value,classIds=newRole==='teacher'?[...form.querySelectorAll('input[name="classIds"]:checked')].map(x=>x.value):[];button.disabled=true;message.hidden=false;message.textContent='Guardando permisos del colegio…';try{await AulaClaraCloud.manageSchoolMember({schoolId:AulaClaraState.schoolId,memberId:teacher.id,action:'update',fullName,role:newRole,classIds});const workspace=await AulaClaraCloud.loadWorkspace();data=workspace.data;closeModal();render();toast('Integrante y permisos actualizados.')}catch(error){button.disabled=false;message.textContent=error.message||'No se pudieron guardar los cambios. Ejecutá la actualización de permisos de Aula Clara y volvé a intentar.'}};
+}
+
+const localRemoveItemWithCloud=removeItem;
+removeItem=async function(key){
+  if(!AulaClaraState?.cloudSession)return localRemoveItemWithCloud(key);
+  if(AulaClaraState.role!=='director'){toast('Solo un directivo puede administrar alumnos e integrantes.');return}
+  const [type,id]=key.split(':');if(!['student','teacher'].includes(type)){toast('La gestión conectada de divisiones se mantiene en su pantalla de configuración.');return}
+  const entity=type==='student'?data.students.find(x=>String(x.id)===id):data.teachers.find(x=>String(x.id)===id);if(!entity)return;
+  const message=type==='student'?`¿Eliminar a ${entity.name} y sus screenings, entregas e informes asociados? Esta acción no se puede deshacer.`:`¿Quitar a ${entity.name} de ${data.school.name}? Perderá el acceso a este colegio, pero su cuenta Aula Clara seguirá existiendo.`;
+  if(!confirm(message))return;
+  try{if(type==='student'){const result=await AulaClaraCloud.deleteStudent(AulaClaraState.schoolId,entity.id);const workspace=await AulaClaraCloud.loadWorkspace();data=workspace.data;render();toast(result.cleanupWarning?'Alumno eliminado.'+result.cleanupWarning:'Alumno e informes asociados eliminados.')}else{await AulaClaraCloud.manageSchoolMember({schoolId:AulaClaraState.schoolId,memberId:entity.id,action:'remove'});const workspace=await AulaClaraCloud.loadWorkspace();data=workspace.data;render();toast('Acceso al colegio quitado. La cuenta Aula Clara del integrante se conserva.')}}catch(error){toast(error.message||'No se pudo completar la acción. Revisá los permisos y volvé a intentar.')}
+};
