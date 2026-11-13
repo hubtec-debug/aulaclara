@@ -35,12 +35,20 @@ document.querySelector('#registerForm').addEventListener('submit',e=>{
 
 // En el modo conectado, los formularios usan Supabase Auth y no la sesión local.
 async function openCloudSession(user,acceptingInvite=false){
+  const recoveryHash=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('type')==='recovery';
+  if(recoveryHash){showRecoveryPassword(user);return}
   const inviteHash=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('type')==='invite';
   if(inviteHash&&!acceptingInvite){showTeacherInvitePassword(user);return}
-  const workspace=await AulaClaraCloud.loadWorkspace();
-  AulaClaraState.schoolId=workspace.schoolId;AulaClaraState.cloudSession=true;
-  data=workspace.data;sessionStorage.setItem('aulaclara-display-name',user.user_metadata?.full_name||user.email||'Equipo escolar');
-  sessionStorage.removeItem('aulaclara-session');enter();
+  const platformAdmin=await window.refreshPlatformAdminAccess?.();
+  let workspace;
+  try{workspace=await AulaClaraCloud.loadWorkspace()}
+  catch(error){if(!platformAdmin)throw error;AulaClaraState.schoolId=null;AulaClaraState.role='platform_admin';AulaClaraState.cloudSession=true;currentPage='admin-plataforma';data=loadData()}
+  if(workspace){AulaClaraState.schoolId=workspace.schoolId;AulaClaraState.cloudSession=true;data=workspace.data}
+  sessionStorage.setItem('aulaclara-display-name',user.user_metadata?.full_name||user.email||'Equipo escolar');sessionStorage.removeItem('aulaclara-session');if(platformAdmin&&!workspace)currentPage='admin-plataforma';enter();
+}
+function showRecoveryPassword(user){
+  document.querySelector('#modalRoot').innerHTML=`<div class="modal-backdrop"><section class="modal"><div class="modal-header"><div><span class="eyebrow">RECUPERACIÓN DE CUENTA</span><h2>Elegí una nueva contraseña</h2><p>Creá una contraseña segura para volver a ingresar a Aula Clara.</p></div></div><form id="recoveryPasswordForm"><div class="field"><label for="recoveryPassword">Nueva contraseña</label><input id="recoveryPassword" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label for="recoveryPasswordRepeat">Repetir contraseña</label><input id="recoveryPasswordRepeat" type="password" minlength="8" autocomplete="new-password" required></div><div id="recoveryPasswordError" class="table-empty" role="status" hidden></div><div class="modal-actions"><button class="button primary" type="submit">Guardar contraseña</button></div></form></section></div>`;
+  document.querySelector('#recoveryPasswordForm').onsubmit=async e=>{e.preventDefault();const pass=document.querySelector('#recoveryPassword').value,repeat=document.querySelector('#recoveryPasswordRepeat').value,error=document.querySelector('#recoveryPasswordError'),button=e.currentTarget.querySelector('button');if(pass!==repeat){error.hidden=false;error.textContent='Las contraseñas no coinciden.';return}button.disabled=true;try{const {error:saveError}=await AulaClaraCloud.client.auth.updateUser({password:pass});if(saveError)throw saveError;history.replaceState({},document.title,window.location.pathname);document.querySelector('#modalRoot').innerHTML='';await openCloudSession(user,true);toast('Contraseña actualizada.')}catch(err){button.disabled=false;error.hidden=false;error.textContent=err.message||'No se pudo actualizar la contraseña.'}};
 }
 function showTeacherInvitePassword(user){
   document.querySelector('#modalRoot').innerHTML=`<div class="modal-backdrop"><section class="modal"><div class="modal-header"><div><span class="eyebrow">INVITACIÓN AL COLEGIO</span><h2>Creá tu contraseña</h2><p>Configurá tu acceso docente para continuar.</p></div></div><form id="teacherInvitePasswordForm"><div class="field"><label for="invitePassword">Nueva contraseña</label><input id="invitePassword" type="password" minlength="8" autocomplete="new-password" required></div><div class="field"><label for="invitePasswordRepeat">Repetir contraseña</label><input id="invitePasswordRepeat" type="password" minlength="8" autocomplete="new-password" required></div><div id="teacherInvitePasswordError" class="table-empty" role="status" hidden></div><div class="modal-actions"><button class="button primary" type="submit">Activar mi cuenta</button></div></form></section></div>`;
