@@ -1,6 +1,6 @@
 let registrationType='school';
-function showRegistration(){document.querySelector('#loginScreen').classList.add('hidden');document.querySelector('#app').classList.add('hidden');document.querySelector('#registerScreen').classList.remove('hidden');document.querySelector('#regName').focus()}
-function showLogin(){document.querySelector('#registerScreen').classList.add('hidden');document.querySelector('#loginScreen').classList.remove('hidden');document.querySelector('#email').focus()}
+function showRegistration(){document.querySelector('#authRestoreScreen')?.classList.add('hidden');document.querySelector('#loginScreen').classList.add('hidden');document.querySelector('#app').classList.add('hidden');document.querySelector('#registerScreen').classList.remove('hidden');document.querySelector('#regName').focus()}
+function showLogin(){document.querySelector('#authRestoreScreen')?.classList.add('hidden');document.querySelector('#registerScreen').classList.add('hidden');document.querySelector('#loginScreen').classList.remove('hidden');document.querySelector('#email').focus()}
 function setRegistrationType(type){
   registrationType=type;
   document.querySelectorAll('[data-account-type]').forEach(b=>b.classList.toggle('selected',b.dataset.accountType===type));
@@ -39,7 +39,7 @@ async function openCloudSession(user,acceptingInvite=false){
   if(recoveryHash){showRecoveryPassword(user);return}
   const inviteHash=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('type')==='invite';
   if(inviteHash&&!acceptingInvite){showTeacherInvitePassword(user);return}
-  const platformAdmin=await window.refreshPlatformAdminAccess?.();
+  const platformAdmin=await window.refreshPlatformAdminAccess?.();if(currentPage==='admin-plataforma'&&!platformAdmin)currentPage='inicio';
   let workspace;
   try{workspace=await AulaClaraCloud.loadWorkspace()}
   catch(error){if(!platformAdmin)throw error;AulaClaraState.schoolId=null;AulaClaraState.role='platform_admin';AulaClaraState.cloudSession=true;currentPage='admin-plataforma';data=loadData()}
@@ -87,8 +87,8 @@ document.querySelector('#registerForm').addEventListener('submit',async e=>{
 if(AulaClaraCloud.configured){
   const resendWrap=document.createElement('p');resendWrap.className='login-register-link';const resendButton=document.createElement('button');resendButton.type='button';resendButton.textContent='Reenviar correo de confirmación';resendWrap.append(resendButton);document.querySelector('#loginForm').after(resendWrap);
   resendButton.onclick=async()=>{const email=document.querySelector('#email').value.trim();if(!email){toast('Escribí tu correo en el campo de acceso y volvé a tocar reenviar.');document.querySelector('#email').focus();return}resendButton.disabled=true;try{const {error}=await AulaClaraCloud.resendSignup(email);if(error)throw error;toast('Si la cuenta necesita confirmación, Supabase enviará un nuevo correo.')}catch(error){toast(error.message||'No se pudo reenviar el correo.')}finally{resendButton.disabled=false}};
-  AulaClaraCloud.session().then(async session=>{if(session?.user)await openCloudSession(session.user)}).catch(error=>toast(error.message||'No se pudo recuperar la sesión.'));
-}
+  window.addEventListener('DOMContentLoaded',()=>{AulaClaraCloud.session().then(async session=>{if(session?.user)await openCloudSession(session.user);else showLogin()}).catch(error=>{showLogin();toast(error.message||'No se pudo recuperar la sesión.')})},{once:true});
+}else{document.querySelector('#authRestoreScreen')?.classList.add('hidden');document.querySelector('#loginScreen').classList.remove('hidden')}
 let cloudSaveTimer=null;
 save=function(){
   if(AulaClaraState.cloudSession){
@@ -100,7 +100,7 @@ save=function(){
 };
 document.querySelector('#logoutBtn').onclick=async()=>{
   if(AulaClaraState.cloudSession){const {error}=await AulaClaraCloud.signOut();if(error){toast(error.message||'No se pudo cerrar la sesión.');return}AulaClaraState.cloudSession=false;AulaClaraState.schoolId=null}
-  sessionStorage.removeItem('aulaclara-session');sessionStorage.removeItem('aulaclara-display-name');document.querySelector('#app').classList.add('hidden');document.querySelector('#loginScreen').classList.remove('hidden');
+  sessionStorage.removeItem('aulaclara-session');sessionStorage.removeItem('aulaclara-display-name');sessionStorage.removeItem('aulaclara-current-page');currentPage='inicio';document.querySelector('#authRestoreScreen')?.classList.add('hidden');document.querySelector('#app').classList.add('hidden');document.querySelector('#loginScreen').classList.remove('hidden');
 };
 document.addEventListener('click',e=>{
   if(!AulaClaraState.cloudSession)return;
